@@ -1,0 +1,55 @@
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.functions._
+object EcomSample {
+
+  def main(args: Array[String]):Unit = {
+    var inputPath = "hdfs://192.168.163.131:8020/user/cloudera/Customer_sample.csv"
+
+    val conf: SparkConf = new SparkConf()
+      .setMaster("local[2]")
+      .setAppName("EcomSample")
+    val sc = SparkContext.getOrCreate(conf)
+    val sq = SQLContext.getOrCreate(sc)
+   /** val cleannull  = udf((actval:String,rpval:String)=>{
+      if(actval == null)
+      {
+        rpval
+      }
+      else
+      {
+        actval
+      }
+    } )**/
+    sq.setConf("spark.sql.shuffle.partitions", "2")
+
+    if (args.length < 1) {
+
+      Logger.getLogger(EcomSample.super.toString).getLevel
+      Logger.getLogger("org").setLevel(Level.OFF)
+      Logger.getLogger("akka").setLevel(Level.OFF)
+
+
+      System.setProperty("hadoop.home.dir", "C:\\Users\\Debu\\IdeaProjects")
+    }
+    else {
+
+      inputPath = args(0)
+    }
+
+    val spark = SparkSession.builder()
+      .master("local[2]")
+      .appName("EcomSample")
+      .config("spark.sql.warehouse.dir", "hdfs://192.168.163.131:8020/user/cloudera")
+      .getOrCreate()
+
+    val inputDF = spark.read.format("csv")
+      .option("location","hdfs://192.168.163.131:8020/user/cloudera/Customer_sample.csv")
+      .option("header","true")
+      .option("treatEmptyValuesAsNulls", "false")
+      .load("hdfs://192.168.163.131:8020/user/cloudera/Customer_sample.csv")
+    inputDF.printSchema()
+    inputDF.show(10)
+  }
+}
