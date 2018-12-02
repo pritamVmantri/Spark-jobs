@@ -1,0 +1,770 @@
+Advanced Spark sql:
+--------------------------
+sqlContext.sql("select * from emp_parse_bean_df where id = 123")
+
+sqlContext.sql("select * from emp_parse_bean_df where city = 'Hyderabad' ")
+
+Operations in DF:
+
+##print the schema in tree format:
+--------------------------------------------------
+emp_parse_bean_df.printSchema()
+
+##print the schema in the specific column:
+-------------------------------------------------
+emp_parse_bean_df.select("name").show  ====>sqlContect.sql("select name from emp_parse_bean_df).show
+
+emp_parse_bean_df.select("city").show
+
+##groupBy--group data by column name:This is an alias for sort function
+------------------------------------------------------------------------------
+emp_parse_bean_df.groupBy("name").show
+
+<console>:37: error: value show is not a member of org.apache.spark.sql.RelationalGroupedDataset
+       res18.show
+
+##Filter data using some condition:
+---------------------------------------------
+emp_parse_bean_df.filter(emp_parse_bean_df("id") > 1).show
+
+## to count the number the number of rows in dataframe:
+
+emp_parse_bean_df.count()
+----------------------------------------------
+
+sqlContext.sql("select * from emp_parse_bean_df where id>123")
+
+sqlContext.sql("select count(*) from emp_parse_bean_df where id =123 group by name")
+
+sqlContext.sql("select name,count(*) from emp_parse_bean_df group by name")
+
+scala> sqlContext.sql("select name,count(*) from emp_parse_bean_df where id > 123 group by name").show
+
+#Sort by column name:
+--------------------------
+
+scala> emp_parse_bean_df.sort("name").show
++---+-------+---------+                                                         
+| id|   name|     city|
++---+-------+---------+
+|789|Krishna|  Chennai|
+|456|   Rama|    Delhi|
+|345|   Ravi|Bangalore|
+|123|   Siva|Hyderabad|
++---+-------+---------+
+
+
+
+#Group data by column name:
+-----------------------------------------------
+scala> emp_parse_bean_df.groupBy("name").count().show()
++-------+-----+                                                                 
+|   name|count|
++-------+-----+
+|   Ravi|    1|
+|Krishna|    1|
+|   Rama|    1|
+|   Siva|    1|
++-------+-----+
+
+# This will give you info about the column:
+
+scala> emp_parse_bean_df.dtypes
+res17: Array[(String, String)] = Array((id,IntegerType), (name,StringType), (city,StringType))
+
+scala> emp_parse_bean_df.dtypes(1)
+res45: (String, String) = (name,StringType)
+
+scala> emp_parse_bean_df.dtypes(0)
+res46: (String, String) = (id,IntegerType)
+
+#Will give you the details of the DF and from which the file is loaded:
+
+scala> emp_parse_bean_df.explain
+== Physical Plan ==
+Scan ExistingRDD[id#97,name#98,city#99]
+
+It is just a physical plan nothing logical existing here
+
+scala> emp_parse_bean_df.limit(2).show
++---+----+---------+
+| id|name|     city|
++---+----+---------+
+|123|Siva|Hyderabad|
+|345|Ravi|Bangalore|
++---+----+---------+
+
+scala> emp_parse_bean_df.filter($"id" > 123)
+res50: org.apache.spark.sql.Dataset[org.apache.spark.sql.Row] = [id: int, name: string ... 1 more field]
+
+scala> res50.show
++---+-------+---------+
+| id|   name|     city|
++---+-------+---------+
+|345|   Ravi|Bangalore|
+|456|   Rama|    Delhi|
+|789|Krishna|  Chennai|
++---+-------+---------+
+
+scala> emp_parse_bean_df.where($"id" > 456)
+res52: org.apache.spark.sql.Dataset[org.apache.spark.sql.Row] = [id: int, name: string ... 1 more field]
+
+scala> res52.show
++---+-------+-------+
+| id|   name|   city|
++---+-------+-------+
+|789|Krishna|Chennai|
++---+-------+-------+
+
+scala> emp_parse_bean_df.first
+res54: org.apache.spark.sql.Row = [123,Siva,Hyderabad]
+
+scala> emp_parse_bean_df.head
+res56: org.apache.spark.sql.Row = [123,Siva,Hyderabad]
+
+scala> emp_parse_bean_df.take(2)
+res55: Array[org.apache.spark.sql.Row] = Array([123,Siva,Hyderabad], [345,Ravi,Bangalore])
+
+scala> emp_parse_bean_df.foreach(q => println(q.getInt(0)+"------"+q.getString(1)+"------"+q.getString(2)))
+123------Siva------Hyderabad
+345------Ravi------Bangalore
+456------Rama------Delhi
+789------Krishna------Chennai
+
+scala> emp_parse_bean_df.take(2).foreach(q => println(q.getString(1)+"------"+q.getInt(0)+"------"+q.getString(2)))
+Siva------123------Hyderabad
+Ravi------345------Bangalore
+
+More operations on DataFrame:
+
+##collect:
+
+scala> emp_parse_bean_df.collect.foreach(w=> println(w.getInt(0)))
+123                                                                             
+345
+456
+789
+
+scala> emp_parse_bean_df.collect.foreach(w=> println(w.getString(1)))
+Siva                                                                            
+Ravi
+Rama
+Krishna
+
+scala> emp_parse_bean_df.collect.foreach(w=> println(w.getString(2)))
+Hyderabad                                                                       
+Bangalore
+Delhi
+Chennai
+
+##collectAsList:
+
+scala> emp_parse_bean_df.collectAsList
+res79: java.util.List[org.apache.spark.sql.Row] = [[123,Siva,Hyderabad], [345,Ravi,Bangalore], [456,Rama,Delhi], [789,Krishna,Chennai]]
+
+##toJavaRdd:
+
+scala> emp_parse_bean_df.javaRDD
+res80: org.apache.spark.api.java.JavaRDD[org.apache.spark.sql.Row] = MapPartitionsRDD[79] at rdd at <console>:35
+
+scala> res80.collect
+res82: java.util.List[org.apache.spark.sql.Row] = [[123,Siva,Hyderabad], [345,Ravi,Bangalore], [456,Rama,Delhi], [789,Krishna,Chennai]]
+
+##agg:
+
+scala>df.groupBy().agg(avg("age")	, max("sal")).show
+
+##drop(colname):
+
+scala>df.drop("id").show
+
+scala> emp_parse_bean_df.drop("id").show
++-------+---------+
+|   name|     city|
++-------+---------+
+|   Siva|Hyderabad|
+|   Ravi|Bangalore|
+|   Rama|    Delhi|
+|Krishna|  Chennai|
++-------+---------+
+
+##dropDuplicates--remove duplicate records and returns new DF
+
+scala>df.dropDuplicates.show
+
+##distinct--This is alias for dropDuplicates
+
+##cache--It will put data into in-memory
+
+scala> emp_parse_bean_df.cache
+res87: emp_parse_bean_df.type = [id: int, name: string ... 1 more field]
+
+##map--works similar as in RDD
+
+
+import sqlContext.implicits._
+
+scala> import spark.implicits._
+import spark.implicits._
+
+
+scala> emp_parse_bean_df.map(q => q(0)).foreach(println)
+<console>:43: error: Unable to find encoder for type stored in a Dataset.  Primitive types (Int, String, etc) and Product types (case classes) are supported by importing spark.implicits._  Support for serializing other types will be added in future releases.
+       emp_parse_bean_df.map(q => q(0)).foreach(println)
+	   
+	   
+##registerTempTable--Registers this dataframe as a temporary table using the given name
+
+scala> sqlContext.sql("select name, city from emp_parse_bean_df where id >123 and id<789")
+res94: org.apache.spark.sql.DataFrame = [name: string, city: string]
+
+scala> res94.show
++----+---------+
+|name|     city|
++----+---------+
+|Ravi|Bangalore|
+|Rama|    Delhi|
++----+---------+
+
+##persist--This is alias for cache
+
+##unpersist--removes DF from in-memory
+
+##join--joins to DF and returns new dataframe
+
+val df1 = sqlContext.read.json("......")
+val df2 = sqlContect.read.json(".......")
+
+val df3 = df1.join(df2,"id").show
+
+
+
+-----------------------------------------Hive Context-------------------------
+
+
+import org.apache.spark.sql
+
+val hc = new org.apache.spark.sql.hive.HiveContext(sc)
+
+ORC files in SqlContext:
+
+$ hdfs dfs -ls /user/cloudera/orc/
+
+val people = sqlContext.read.format("orc").load("hdfs://quickstart.cloudera:8020/user/cloudera/orc/000000_0")
+
+or
+
+val people = sqlContext.read.orc("hdfs://quickstart.cloudera:8020/user/cloudera/orc/000000_0")
+
+scala> val people = sqlContext.read.format("orc").load("hdfs://quickstart.cloudera:8020/user/cloudera/orc/000000_0")
+people: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> people.show
++-----+-------+---------+
+|_col0|  _col1|    _col2|
++-----+-------+---------+
+|  123|   Siva|Hyderabad|
+|  345|   Ravi|Bangalore|
+|  456|   Rama|    Delhi|
+|  789|Krishna|  Chennai|
++-----+-------+---------+
+
+
+scala> people.printSchema
+root
+ |-- _col0: integer (nullable = true)
+ |-- _col1: string (nullable = true)
+ |-- _col2: string (nullable = true)
+
+scala> people.registerTempTable("people_temp")
+warning: there was one deprecation warning; re-run with -deprecation for details
+
+scala> sqlContext.sql("show tables")
+res102: org.apache.spark.sql.DataFrame = [tableName: string, isTemporary: boolean]
+
+scala> res102.show
++--------------------+-----------+
+|           tableName|isTemporary|
++--------------------+-----------+
+|          categories|      false|
+|           customers|      false|
+|         departments|      false|
+|    departments_test|      false|
+|             emp_orc|      false|
+|         emp_parquet|      false|
+|             emp_txt|      false|
+|         order_items|      false|
+|              orders|      false|
+|    partitioned_user|      false|
+|partitioned_user_txt|      false|
+|            products|      false|
+|                user|      false|
+|            user_orc|      false|
+|               users|      false|
+|   emp_parse_bean_df|       true|
+|         people_temp|       true|
++--------------------+-----------+
+
+scala> val results = sqlContext.sql("select * from people_temp")
+results: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> results.show
++-----+-------+---------+
+|_col0|  _col1|    _col2|
++-----+-------+---------+
+|  123|   Siva|Hyderabad|
+|  345|   Ravi|Bangalore|
+|  456|   Rama|    Delhi|
+|  789|Krishna|  Chennai|
++-----+-------+---------+
+
+
+scala> sqlContext.sql("select _col1 from people_temp where _col0> 123").show
++-------+
+|  _col1|
++-------+
+|   Ravi|
+|   Rama|
+|Krishna|
++-------+
+
+Using HiveContext:
+---------------------
+
+
+scala> hc
+res106: org.apache.spark.sql.hive.HiveContext = org.apache.spark.sql.hive.HiveContext@369d625
+
+scala> val orcDf = hc.read.format("orc").load("hdfs://quickstart.cloudera:8020/user/cloudera/orc/000000_0")
+orcDf: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> val orcDf1 = hc.read.orc("hdfs://quickstart.cloudera:8020/user/cloudera/orc/000000_0")
+orcDf1: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> val parquetDf1 =hc.read.format("parquet").load("hdfs://quickstart.cloudera:8020/user/cloudera/parquet/000000_0")
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+parquetDf1: org.apache.spark.sql.DataFrame = [e_id: int, name: string ... 1 more field]
+
+scala> val jsonDf1 = hc.read.format("json").load("file:///home/cloudera/data.json")
+jsonDf1: org.apache.spark.sql.DataFrame = [city: string, id: bigint ... 1 more field]
+
+scala> orcDf1.registerTempTable("orcDf1_temp")
+warning: there was one deprecation warning; re-run with -deprecation for details
+
+
+scala> hc.sql("show tables").show
++--------------------+-----------+
+|           tableName|isTemporary|
++--------------------+-----------+
+|          categories|      false|
+|           customers|      false|
+|         departments|      false|
+|    departments_test|      false|
+|             emp_orc|      false|
+|         emp_parquet|      false|
+|             emp_txt|      false|
+|         order_items|      false|
+|              orders|      false|
+|    partitioned_user|      false|
+|partitioned_user_txt|      false|
+|            products|      false|
+|                user|      false|
+|            user_orc|      false|
+|               users|      false|
+|   emp_parse_bean_df|       true|
+|         orcdf1_temp|       true|
+|         people_temp|       true|
++--------------------+-----------+
+
+scala> hc.sql("select * from orcdf1_temp")
+res111: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> res111.show
++-----+-------+---------+
+|_col0|  _col1|    _col2|
++-----+-------+---------+
+|  123|   Siva|Hyderabad|
+|  345|   Ravi|Bangalore|
+|  456|   Rama|    Delhi|
+|  789|Krishna|  Chennai|
++-----+-------+---------+
+
+scala> hc.sql("select _col0,_col1 from orcdf1_temp")
+res114: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string]
+
+scala> res114.show
++-----+-------+
+|_col0|  _col1|
++-----+-------+
+|  123|   Siva|
+|  345|   Ravi|
+|  456|   Rama|
+|  789|Krishna|
++-----+-------+
+
+json file parsing:
+------------------
+import scala.util.parsing.json.JSON
+val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+val df = sqlContext.jsonFile("file:///home/cloudera/data.json")
+
+##Creating UDF:
+
+def toUpper(name:String) : String ={name.toUpperCase}
+
+val df = hc.read.json("file:///home/cloudera/data.json")
+
+df.registerTempTable("data_tmp")
+
+hc.udf.register("Uppercase", toUpper(_:String)
+
+scala> hc.sql("select * from data_tmp").show
+
++--------+---+---------+
+|    city| id|     name|
++--------+---+---------+
+| Baleine|  1|   Wandis|
+|  Eronie|  2|      Mia|
+|  Baudon|  3|   Oralle|
+|    Kuhn|  4|    Jemie|
+|Jolliman|  5|Guenevere|
+|McKirton|  6|    Talya|
+| Garbutt|  7|  Suellen|
+| Ackroyd|  8|   Maggee|
+|   Jerok|  9|    Jania|
+| Sturdey| 10|     Whit|
++--------+---+---------+
+
+
+scala> hc.sql("select Uppercase(name),city from data_tmp where id > 4")
+res127: org.apache.spark.sql.DataFrame = [UDF(name): string, city: string]
+
+scala> res127.show
++---------+--------+
+|UDF(name)|    city|
++---------+--------+
+|GUENEVERE|Jolliman|
+|    TALYA|McKirton|
+|  SUELLEN| Garbutt|
+|   MAGGEE| Ackroyd|
+|    JANIA|   Jerok|
+|     WHIT| Sturdey|
++---------+--------+
+
+using orc file:
+---------------------------
+scala> def toUpper(name:String) : String = { name.toUpperCase }
+toUpper: (name: String)String
+
+scala> val orcDf = hc.read.format("orc").load("hdfs://quickstart.cloudera:8020/user/cloudera/orc/000000_0")
+orcDf: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> orcDf.registerTempTable("ORC_temp")
+warning: there was one deprecation warning; re-run with -deprecation for details
+
+scala> hc.udf.register("toUpper", toUpper(_:String))
+res131: org.apache.spark.sql.expressions.UserDefinedFunction = UserDefinedFunction(<function1>,StringType,Some(List(StringType)))
+
+scala> hc.sql("select * from ORC_temp")
+res132: org.apache.spark.sql.DataFrame = [_col0: int, _col1: string ... 1 more field]
+
+scala> res132.show
++-----+-------+---------+
+|_col0|  _col1|    _col2|
++-----+-------+---------+
+|  123|   Siva|Hyderabad|
+|  345|   Ravi|Bangalore|
+|  456|   Rama|    Delhi|
+|  789|Krishna|  Chennai|
++-----+-------+---------+
+
+
+scala> hc.sql("select _col0,toUpper(_col1) from ORC_temp where _col0>123")
+res134: org.apache.spark.sql.DataFrame = [_col0: int, UDF(_col1): string]
+
+scala> res134.show
++-----+----------+
+|_col0|UDF(_col1)|
++-----+----------+
+|  345|      RAVI|
+|  456|      RAMA|
+|  789|   KRISHNA|
++-----+----------+
+ 
+
+ SQL data types:
+ -----------------
+ Datatype:The base type of all Spark SQL datatypes
+ 
+ ArrayType
+ BinaryType
+ BooleanType
+ DateType
+ MapType
+ NullType
+ NumericType
+		-ByteType
+		-DecimalType,DoubleType,FloatType,
+		-IntegerType,LongType,ShortType	
+StringType
+StructType
+TimeStampType
+
+SQL Datatype:
+-----------------
+import  org.apache.spark.sql.types._
+
+val struct = StructType(StructField("a", IntegerType, true) ::StructField("b", LongType, false) ::StructField("c", BooleanType, false) :: Nil)
+
+##Extract a single StructField:
+
+val singleField = struct("b")
+
+Define schema programitically:
+------------------------------
+
+##Loading file:
+-----------------
+
+scala> val people = sc.textFile("/home/cloudera/people.txt")
+people: org.apache.spark.rdd.RDD[String] = /home/cloudera/people.txt MapPartitionsRDD[1] at textFile at <console>:30
+
+scala> val schema = StructType(Array(StructField("id", IntegerType, true), StructField("name", StringType, true)))
+schema: org.apache.spark.sql.types.StructType = StructType(StructField(id,IntegerType,true), StructField(name,StringType,true))
+
+scala> import org.apache.spark.sql.Row;
+import org.apache.spark.sql.Row
+
+##Now we can define schema in two ways:
+------------------------------------------
+First way:
+-----------
+scala> val emp = people.map(x=>x.split(","))
+
+scala> val emp_row = emp.map(p => Row(p(0).toInt,p(1).trim)
+emp_row: org.apache.spark.rdd.RDD[org.apache.spark.sql.Row] = MapPartitionsRDD[3] at map at <console>:32
+
+scala> val peopledataframe =sqlContext.createDataFrame(emp_row,schema)
+18/04/10 10:19:49 INFO BlockManagerInfo: Removed broadcast_10_piece0 on 192.168.163.130:47156 in memory (size: 2001.0 B, free: 366.2 MB)
+18/04/10 10:19:53 INFO HiveUtils: Initializing HiveMetastoreConnection version 1.2.1 using Spark classes.
+18/04/10 10:20:05 INFO metastore: Trying to connect to metastore with URI thrift://127.0.0.1:9083
+18/04/10 10:20:07 INFO metastore: Connected to metastore.
+18/04/10 10:20:11 INFO SessionState: Created local directory: /tmp/ef85253f-b3cb-499f-8edb-1307f55e23e2_resources
+18/04/10 10:20:11 INFO SessionState: Created HDFS directory: /tmp/hive/cloudera/ef85253f-b3cb-499f-8edb-1307f55e23e2
+18/04/10 10:20:11 INFO SessionState: Created local directory: /tmp/cloudera/ef85253f-b3cb-499f-8edb-1307f55e23e2
+18/04/10 10:20:11 INFO SessionState: Created HDFS directory: /tmp/hive/cloudera/ef85253f-b3cb-499f-8edb-1307f55e23e2/_tmp_space.db
+18/04/10 10:20:11 INFO HiveClientImpl: Warehouse location for Hive client (version 1.2.1) is file:/home/cloudera/spark-warehouse
+18/04/10 10:20:12 INFO SessionState: Created local directory: /tmp/00322fc9-8fb0-44ae-a06c-6337594ee46f_resources
+18/04/10 10:20:12 INFO SessionState: Created HDFS directory: /tmp/hive/cloudera/00322fc9-8fb0-44ae-a06c-6337594ee46f
+18/04/10 10:20:12 INFO SessionState: Created local directory: /tmp/cloudera/00322fc9-8fb0-44ae-a06c-6337594ee46f
+18/04/10 10:20:12 INFO SessionState: Created HDFS directory: /tmp/hive/cloudera/00322fc9-8fb0-44ae-a06c-6337594ee46f/_tmp_space.db
+18/04/10 10:20:12 INFO HiveClientImpl: Warehouse location for Hive client (version 1.2.1) is file:/home/cloudera/spark-warehouse
+peopledataframe: org.apache.spark.sql.DataFrame = [id: int, name: string]
+
+
+scala>peopledataframe.show
+
++---+-----------+
+| id|       name|
++---+-----------+
+|  1|      Tessa|
+|  2|  Evangelia|
+|  3|      Timmi|
+|  4|     Ettore|
+|  5|      Aimee|
+|  6|    Padriac|
+|  7|    Pepillo|
+|  8|        Ole|
+|  9|     Rustie|
+| 10|    Tamqrah|
+| 11|      Maude|
+| 12|  Cleveland|
+| 13|  Alexander|
+| 14|     Bourke|
+| 15|     Andrea|
+| 16|   Oliviero|
+| 17|      Lemar|
+| 18|   Phillida|
+| 19|Martguerita|
+| 20|   Rebekkah|
++---+-----------+
+only showing top 20 rows
+
+##Loading a file:
+scala> val people = sc.textFile("/home/cloudera/people.txt")
+Second way:
+------------
+												Or
+scala> import org.apache.spark.sql.Row;
+import org.apache.spark.sql.Row
+
+scala> import org.apache.spark.sql.types._
+import org.apache.spark.sql.types._
+
+scala> val schemaString = "id,name"
+schemaString: String = id,name
+
+scala> val schema = StructType(schemaString.split(",").map(fieldName => StructField(fieldName, StringType, true)))
+schema: org.apache.spark.sql.types.StructType = StructType(StructField(id,StringType,true), StructField(name,StringType,true))
+
+##Now mapping Schema with data:
+
+Error:
+-------
+scala> val rowRDD = people.map(x=>x.split(",")).map(x=> Row(x(0).toInt,x(1).trim))
+rowRDD: org.apache.spark.rdd.RDD[org.apache.spark.sql.Row] = MapPartitionsRDD[48] at map at <console>:43
+
+scala> val peopleDataFrame = sqlContext.createDataFrame(rowRDD,schema)
+peopleDataFrame: org.apache.spark.sql.DataFrame = [id: string, name: string]
+
+scala> peopleDataFrame.show
+
+java.lang.RuntimeException: Error while encoding: java.lang.RuntimeException: java.lang.Integer is not a valid external type for schema of string
+
+
+scala>val rowRDD = people.map(x=>x.split(",")).map(x=> Row(x(0).trim,x(1).trim))
+rowRDD: org.apache.spark.rdd.RDD[org.apache.spark.sql.Row] = MapPartitionsRDD[53] at map at <console>:43
+
+
+scala> val peopleDataFrame = sqlContext.createDataFrame(rowRDD,schema)
+peopleDataFrame: org.apache.spark.sql.DataFrame = [id: string, name: string]
+
+
+scala> peopleDataFrame.show
++---+-----------+
+| id|       name|
++---+-----------+
+|  1|      Tessa|
+|  2|  Evangelia|
+|  3|      Timmi|
+|  4|     Ettore|
+|  5|      Aimee|
+|  6|    Padriac|
+|  7|    Pepillo|
+|  8|        Ole|
+|  9|     Rustie|
+| 10|    Tamqrah|
+| 11|      Maude|
+| 12|  Cleveland|
+| 13|  Alexander|
+| 14|     Bourke|
+| 15|     Andrea|
+| 16|   Oliviero|
+| 17|      Lemar|
+| 18|   Phillida|
+| 19|Martguerita|
+| 20|   Rebekkah|
++---+-----------+
+only showing top 20 rows
+
+### need to check this while writing people.write.parquet(people.parquet)
+18/04/10 14:38:40 INFO ParquetWriteSupport: Initialized Parquet WriteSupport with Catalyst schema:
+{
+  "type" : "struct",
+  "fields" : [ {
+    "name" : "id",
+    "type" : "string",
+    "nullable" : true,
+    "metadata" : { }
+  }, {
+    "name" : "name",
+    "type" : "string",
+    "nullable" : true,
+    "metadata" : { }
+  } ]
+}
+and corresponding Parquet message type:
+message spark_schema {
+  optional binary id (UTF8);
+  optional binary name (UTF8);
+}
+
+
+
+
+Custom case class:
+--------------------
+Scala classes in Scala 2.10 can support only upto 22 fields.
+
+If you have more than 22 columns, we need to use custom custom classes as shown below:
+
+import scala.util.{Try, Success, Failure}
+import org.apache.spark.sql._
+import sqlContext._
+
+class Tab_A(r_split:String, acct_id:String, dnsopt_out:String, sac_balance:String, sac_offer:String, midmkt:StringType, act_alt_less_9:String
+, emob_flag:String, Conv_excl:String, b_seg:Option[Double], pr_sensativity:String, pr_responder:String, empiricascore:Option[Double],
+mail_mo:Option[Double], behv_seg:String, bt_pseg:Option[Double], puc_pseg:Option[Double], ma_seg:Sring, ntile_rr:String, 
+ntile_bt:Option[Double], always_on_dt:String, bk_score_dt:String, tadiscs_dt:String, tbal_bkt_period:String, open_dt:String
+, days_open:Option[Double], mob:Option[Double], active_alt:String, junk_mail_flag:String, promo_solit:String, r_seg:String) extends Products {
+
+	override def productElement(n:	Int):	Any =
+	n match {
+
+		case 0	=>	r_split
+		case 1  =>	acct_id
+		case 2  =>	dnsopt_out
+		case 3  =>	sac_balance
+		case 4  =>	sac_offer
+		case 5  =>	midmkt
+		case 6  =>	act_alt_less_9
+		case 7  =>	emob_flag
+		case 8  =>	Conv_excl
+		case 9  =>	b_seg
+		case 10	=>	pr_sensativity
+		case 11 =>	pr_responder
+		case 12 =>	empiricascore
+		case 13 =>	mail_mo
+		case 14 =>	behv_seg
+		case 15 =>	bt_pseg
+		case 16 =>	puc_pseg
+		case 17 =>	ma_seg
+		case 18 =>	ntile_rr
+		case 19 =>	ntile_bt
+		case 20 =>	always_on_dt
+		case 21 =>	bk_score_dt
+		case 22 =>	tadiscs_dt
+		case 23 =>	tbal_bkt_period
+		case 24 =>	open_dt
+		case 25 =>	days_open
+		case 26 =>	mob
+		case 27 =>	active_alt
+		case 28 =>	junk_mail_flag
+		case 29 =>	promo_solit
+		case 30 =>	r_seg
+		case _  =>	throw new IndexOutOfBoundsException(n.toString)
+		}
+		override def productArity:	Int = 31
+		override def canEqual(that: Any): Boolean = that.isInstanceOf[Tab_A]
+}
+
+
+val data=
+
+check with mangesh once
+
+Parquet Datasets:
+-----------------
+##Writing df into parquet:
+
+people.write.parquet("people.parquet")
+
+//Read in the parquet format is mentioned above 
+
+val parquetDf1 =hc.read.format("parquet").load("hdfs://quickstart.cloudera:8020/user/cloudera/parquet/000000_0")
+or
+val parquetfile = sqlContext.read.parquet("people.parquet")
+
+//The result of loading a parquet file is also DataFrame
+
+//Parquet files can also be registered a temp table and then used in SQL statements
+
+parquetfile.registerTempTable("parquetfile")
+
+val teenegers=sqlContext.sql("SELECT name FROM parquetfile WHERE age>=13 AND age<=19")
+
+
+
+
